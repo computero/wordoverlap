@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { toCanvas } from 'html-to-image'
 import { jsPDF } from 'jspdf'
 import './App.css'
 
@@ -458,41 +459,25 @@ function App() {
       await document.fonts.ready
     }
 
-    const stageRect = stage.getBoundingClientRect()
-    const exportWidth = Math.max(1, Math.round(stageRect.width))
-    const exportHeight = Math.max(1, Math.round(stageRect.height))
-    const ratio = Math.max(window.devicePixelRatio || 1, 2)
-    const canvas = document.createElement('canvas')
-    canvas.width = exportWidth * ratio
-    canvas.height = exportHeight * ratio
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    ctx.scale(ratio, ratio)
-
     const stageBackground = window.getComputedStyle(stage).backgroundColor || '#f4efe9'
-    ctx.fillStyle = stageBackground
-    ctx.fillRect(0, 0, exportWidth, exportHeight)
+    const exportWidth = Math.max(1, Math.round(stage.clientWidth))
+    const exportHeight = Math.max(1, Math.round(stage.clientHeight))
+    const scale = Math.max(window.devicePixelRatio || 1, 2)
 
-    rows.forEach((row) => {
-      const text = row.text || ' '
-      const x = exportWidth / 2 + row.x
-      const y = row.y
-      const weight = row.weight || 700
-      ctx.font = `${weight} ${row.fontSize}px ${row.fontFamily}`
-      const metrics = ctx.measureText(text)
-      const textHeight =
-        (metrics.actualBoundingBoxAscent || row.fontSize * 0.72) +
-        (metrics.actualBoundingBoxDescent || row.fontSize * 0.28)
-
-      ctx.save()
-      ctx.translate(x, y + textHeight / 2)
-      ctx.rotate((row.rotation * Math.PI) / 180)
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'top'
-      ctx.fillStyle = row.color
-      ctx.fillText(text, 0, -textHeight / 2)
-      ctx.restore()
-    })
+    let canvas
+    try {
+      canvas = await toCanvas(stage, {
+        backgroundColor: stageBackground,
+        cacheBust: true,
+        height: exportHeight,
+        pixelRatio: scale,
+        skipAutoScale: false,
+        width: exportWidth,
+      })
+    } catch (error) {
+      console.error('Export failed:', error)
+      return
+    }
 
     if (type === 'pdf') {
       const pdf = new jsPDF({
