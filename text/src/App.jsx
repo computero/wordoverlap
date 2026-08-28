@@ -84,6 +84,7 @@ function App() {
   const dragRef = useRef(null)
   const colorDragRef = useRef(null)
   const rowInputRefs = useRef(new Map())
+  const sizeAdjustHoldRef = useRef(null)
   const initialConfig = readStoredConfig()
   const [rows, setRows] = useState(() => {
     const saved = readStoredConfig()
@@ -302,6 +303,46 @@ function App() {
     )
   }
 
+  const stepAllFontSizes = (amount) => {
+    setRows((current) =>
+      current.map((row) => ({
+        ...row,
+        fontSize: clamp((Number(row.fontSize) || 24) + amount, 18, 180),
+      })),
+    )
+  }
+
+  const stopSizeAdjustHold = () => {
+    if (!sizeAdjustHoldRef.current) {
+      return
+    }
+
+    const { timeoutId, intervalId } = sizeAdjustHoldRef.current
+    window.clearTimeout(timeoutId)
+    window.clearInterval(intervalId)
+    sizeAdjustHoldRef.current = null
+  }
+
+  const startSizeAdjustHold = (amount) => {
+    stopSizeAdjustHold()
+    stepAllFontSizes(amount)
+
+    const timeoutId = window.setTimeout(() => {
+      const intervalId = window.setInterval(() => {
+        stepAllFontSizes(amount)
+      }, 70)
+
+      if (sizeAdjustHoldRef.current) {
+        sizeAdjustHoldRef.current.intervalId = intervalId
+      }
+    }, 260)
+
+    sizeAdjustHoldRef.current = {
+      timeoutId,
+      intervalId: null,
+    }
+  }
+
   const addRow = (insertAfterRowId = null) => {
     const stageHeight = stageRef.current?.clientHeight ?? 620
     const sourceRow = insertAfterRowId
@@ -493,6 +534,12 @@ function App() {
 
     rowInputRefs.current.delete(rowId)
   }
+
+  useEffect(() => {
+    return () => {
+      stopSizeAdjustHold()
+    }
+  }, [])
 
   const exportImage = async (type = downloadType) => {
     const stage = stageRef.current
@@ -989,6 +1036,46 @@ function App() {
               Load config
               <input type="file" accept=".fun" onChange={loadConfig} />
             </label>
+
+            <div className="size-adjust-split" aria-label="Adjust all text sizes">
+              <button
+                type="button"
+                className="size-adjust-button increase"
+                onPointerDown={() => startSizeAdjustHold(1)}
+                onPointerUp={stopSizeAdjustHold}
+                onPointerLeave={stopSizeAdjustHold}
+                onPointerCancel={stopSizeAdjustHold}
+                onBlur={stopSizeAdjustHold}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    stepAllFontSizes(1)
+                  }
+                }}
+              >
+                <span className="size-adjust-symbol">+</span>
+                <span className="size-adjust-label">text</span>
+              </button>
+
+              <button
+                type="button"
+                className="size-adjust-button decrease"
+                onPointerDown={() => startSizeAdjustHold(-1)}
+                onPointerUp={stopSizeAdjustHold}
+                onPointerLeave={stopSizeAdjustHold}
+                onPointerCancel={stopSizeAdjustHold}
+                onBlur={stopSizeAdjustHold}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    stepAllFontSizes(-1)
+                  }
+                }}
+              >
+                <span className="size-adjust-symbol">-</span>
+                <span className="size-adjust-label">text</span>
+              </button>
+            </div>
           </div>
 
           <div className="download-split" aria-expanded={downloadMenuOpen}>
