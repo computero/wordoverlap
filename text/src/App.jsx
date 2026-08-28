@@ -220,7 +220,7 @@ function App() {
         const x = clamp((event.clientX - rect.left) / rect.width, 0, 1)
         const y = clamp((event.clientY - rect.top) / rect.height, 0, 1)
         const hue = x * 360
-        const saturation = y * 100
+        const saturation = 100 - y * 100
         const { l } = getColorState(selectedRow.color)
         updateRow(selectedRow.id, { color: hslToHex(hue, saturation, l) })
         return
@@ -450,35 +450,47 @@ function App() {
     }
   }
 
-  const exportImage = (type = downloadType) => {
+  const exportImage = async (type = downloadType) => {
     const stage = stageRef.current
     if (!stage) return
 
-    const exportWidth = 1200
-    const exportHeight = 1500
-    const ratio = window.devicePixelRatio || 1
+    if (document.fonts?.ready) {
+      await document.fonts.ready
+    }
+
+    const stageRect = stage.getBoundingClientRect()
+    const exportWidth = Math.max(1, Math.round(stageRect.width))
+    const exportHeight = Math.max(1, Math.round(stageRect.height))
+    const ratio = Math.max(window.devicePixelRatio || 1, 2)
     const canvas = document.createElement('canvas')
     canvas.width = exportWidth * ratio
     canvas.height = exportHeight * ratio
     const ctx = canvas.getContext('2d')
+    if (!ctx) return
     ctx.scale(ratio, ratio)
 
-    ctx.fillStyle = '#e9eef1'
+    const stageBackground = window.getComputedStyle(stage).backgroundColor || '#f4efe9'
+    ctx.fillStyle = stageBackground
     ctx.fillRect(0, 0, exportWidth, exportHeight)
 
-    const stageRect = stage.getBoundingClientRect()
-
     rows.forEach((row) => {
-      const x = exportWidth / 2 + row.x * (exportWidth / stageRect.width)
-      const y = row.y * (exportHeight / stageRect.height)
+      const text = row.text || ' '
+      const x = exportWidth / 2 + row.x
+      const y = row.y
+      const weight = row.weight || 700
+      ctx.font = `${weight} ${row.fontSize}px ${row.fontFamily}`
+      const metrics = ctx.measureText(text)
+      const textHeight =
+        (metrics.actualBoundingBoxAscent || row.fontSize * 0.72) +
+        (metrics.actualBoundingBoxDescent || row.fontSize * 0.28)
+
       ctx.save()
-      ctx.translate(x, y)
+      ctx.translate(x, y + textHeight / 2)
       ctx.rotate((row.rotation * Math.PI) / 180)
       ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
+      ctx.textBaseline = 'top'
       ctx.fillStyle = row.color
-      ctx.font = `${row.weight || 700} ${row.fontSize * (exportWidth / stageRect.width)}px ${row.fontFamily}`
-      ctx.fillText(row.text, 0, 0)
+      ctx.fillText(text, 0, -textHeight / 2)
       ctx.restore()
     })
 
@@ -554,7 +566,8 @@ function App() {
   }
 
   const hslToRgb = (h, s, l) => {
-    const hh = h / 360
+    const normalizedHue = ((h % 360) + 360) % 360
+    const hh = normalizedHue / 360
     const ss = s / 100
     const ll = l / 100
 
@@ -896,7 +909,7 @@ function App() {
                         className="color-dot"
                         style={{
                           left: `${(colorState.h / 360) * 100}%`,
-                          top: `${Math.min(Math.max(colorState.s, 0), 100)}%`,
+                          top: `${100 - Math.min(Math.max(colorState.s, 0), 100)}%`,
                         }}
                       />
                     </div>
