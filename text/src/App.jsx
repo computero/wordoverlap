@@ -83,6 +83,7 @@ function App() {
   const stageRef = useRef(null)
   const dragRef = useRef(null)
   const colorDragRef = useRef(null)
+  const rowInputRefs = useRef(new Map())
   const initialConfig = readStoredConfig()
   const [rows, setRows] = useState(() => {
     const saved = readStoredConfig()
@@ -112,6 +113,7 @@ function App() {
   const [downloadType, setDownloadType] = useState('png')
   const [downloadMenuOpen, setDownloadMenuOpen] = useState(false)
   const [editingRowId, setEditingRowId] = useState(null)
+  const [pendingInputFocusRowId, setPendingInputFocusRowId] = useState(null)
 
   const selectedRow =
     rows.find((row) => row.id === selectedRowId) ?? rows[rows.length - 1] ?? null
@@ -121,6 +123,19 @@ function App() {
       setSelectedRowId(rows[rows.length - 1].id)
     }
   }, [rows, selectedRowId])
+
+  useEffect(() => {
+    if (!pendingInputFocusRowId) return
+
+    const input = rowInputRefs.current.get(pendingInputFocusRowId)
+    if (!input) return
+
+    requestAnimationFrame(() => {
+      input.focus()
+      input.select()
+      setPendingInputFocusRowId(null)
+    })
+  }, [rows, pendingInputFocusRowId])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -287,11 +302,16 @@ function App() {
     )
   }
 
-  const addRow = () => {
+  const addRow = (insertAfterRowId = null) => {
     const stageHeight = stageRef.current?.clientHeight ?? 620
-    const defaultY = rows.length
-      ? Math.max(...rows.map((row) => row.y + row.fontSize + 42), 180)
-      : 180
+    const sourceRow = insertAfterRowId
+      ? rows.find((row) => row.id === insertAfterRowId) ?? null
+      : null
+    const defaultY = sourceRow
+      ? sourceRow.y + sourceRow.fontSize + 42
+      : rows.length
+        ? Math.max(...rows.map((row) => row.y + row.fontSize + 42), 180)
+        : 180
     const maxCanvasY = Math.max(180, stageHeight - 110)
     const nextY = Math.min(defaultY, maxCanvasY)
 
@@ -304,9 +324,23 @@ function App() {
       color: '#111111',
     })
 
-    setRows((current) => [...current, nextRow])
+    setRows((current) => {
+      if (!insertAfterRowId) {
+        return [...current, nextRow]
+      }
+
+      const insertIndex = current.findIndex((row) => row.id === insertAfterRowId)
+      if (insertIndex < 0) {
+        return [...current, nextRow]
+      }
+
+      const next = [...current]
+      next.splice(insertIndex + 1, 0, nextRow)
+      return next
+    })
     setSelectedRowId(nextRow.id)
     setAdvancedOpen(false)
+    setPendingInputFocusRowId(nextRow.id)
   }
 
   const deleteRow = (id) => {
@@ -449,6 +483,15 @@ function App() {
       startClientY: event.clientY,
       initialRow: { ...row },
     }
+  }
+
+  const registerRowInputRef = (rowId) => (input) => {
+    if (input) {
+      rowInputRefs.current.set(rowId, input)
+      return
+    }
+
+    rowInputRefs.current.delete(rowId)
   }
 
   const exportImage = async (type = downloadType) => {
@@ -639,8 +682,16 @@ function App() {
                 >
                   <input
                     type="text"
+                    ref={registerRowInputRef(row.id)}
                     value={row.text}
                     onChange={(event) => updateRow(row.id, { text: event.target.value })}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' && event.shiftKey) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                        addRow(row.id)
+                      }
+                    }}
                   />
 
                   <select
