@@ -115,6 +115,7 @@ function App() {
   const [downloadMenuOpen, setDownloadMenuOpen] = useState(false)
   const [editingRowId, setEditingRowId] = useState(null)
   const [pendingInputFocusRowId, setPendingInputFocusRowId] = useState(null)
+  const [newRowFontSizeOffset, setNewRowFontSizeOffset] = useState(0)
 
   const selectedRow =
     rows.find((row) => row.id === selectedRowId) ?? rows[rows.length - 1] ?? null
@@ -304,6 +305,8 @@ function App() {
   }
 
   const stepAllFontSizes = (amount) => {
+    setNewRowFontSizeOffset((current) => clamp(current + amount, 18 - 48, 180 - 48))
+
     setRows((current) =>
       current.map((row) => ({
         ...row,
@@ -360,7 +363,7 @@ function App() {
       text: 'NEW ROW',
       x: 0,
       y: nextY,
-      fontSize: 48,
+      fontSize: clamp(48 + newRowFontSizeOffset, 18, 180),
       fontFamily: DEFAULT_FONT_OPTIONS[0].value,
       color: '#111111',
     })
@@ -720,87 +723,89 @@ function App() {
       <div className="editor-shell-wrap">
         <div className="editor-shell">
           <div className="controls-panel">
-            <div className="rows-list">
-              {rows.map((row, index) => (
-                <div
-                  key={row.id}
-                  className={`row-item ${row.id === selectedRowId ? 'active' : ''}`}
-                  onClick={() => setSelectedRowId(row.id)}
-                >
-                  <input
-                    type="text"
-                    ref={registerRowInputRef(row.id)}
-                    value={row.text}
-                    onChange={(event) => updateRow(row.id, { text: event.target.value })}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' && event.shiftKey) {
-                        event.preventDefault()
+            <div className="rows-scroll-section">
+              <div className="rows-list">
+                {rows.map((row, index) => (
+                  <div
+                    key={row.id}
+                    className={`row-item ${row.id === selectedRowId ? 'active' : ''}`}
+                    onClick={() => setSelectedRowId(row.id)}
+                  >
+                    <input
+                      type="text"
+                      ref={registerRowInputRef(row.id)}
+                      value={row.text}
+                      onChange={(event) => updateRow(row.id, { text: event.target.value })}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' && event.shiftKey) {
+                          event.preventDefault()
+                          event.stopPropagation()
+                          addRow(row.id)
+                        }
+                      }}
+                    />
+
+                    <select
+                      className={row.missingFontFamily ? 'missing-font-select' : ''}
+                      value={row.fontFamily}
+                      style={{
+                        color: row.missingFontFamily ? '#b22323' : undefined,
+                        borderColor: row.missingFontFamily ? '#b22323' : undefined,
+                      }}
+                      onChange={(event) => {
+                        const fontValue = event.target.value
+                        const fontMissing = !!row.missingFontFamily && fontValue === row.missingFontFamily
+                        updateRow(row.id, {
+                          fontFamily: fontValue,
+                          missingFontFamily: fontMissing ? row.missingFontFamily : null,
+                        })
+                      }}
+                    >
+                      {getSelectOptionsForRow(row).map((font) => (
+                        <option
+                          key={`${font.label}-${font.value}`}
+                          value={font.value}
+                          style={{ color: font.missing ? '#b22323' : '#111' }}
+                        >
+                          {font.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    <button
+                      type="button"
+                      className="row-action gear"
+                      aria-label="Open advanced settings"
+                      onClick={(event) => {
                         event.stopPropagation()
-                        addRow(row.id)
-                      }
-                    }}
-                  />
+                        setSelectedRowId(row.id)
+                        setAdvancedOpen(true)
+                      }}
+                    >
+                      ⚙
+                    </button>
 
-                  <select
-                    className={row.missingFontFamily ? 'missing-font-select' : ''}
-                    value={row.fontFamily}
-                    style={{
-                      color: row.missingFontFamily ? '#b22323' : undefined,
-                      borderColor: row.missingFontFamily ? '#b22323' : undefined,
-                    }}
-                    onChange={(event) => {
-                      const fontValue = event.target.value
-                      const fontMissing = !!row.missingFontFamily && fontValue === row.missingFontFamily
-                      updateRow(row.id, {
-                        fontFamily: fontValue,
-                        missingFontFamily: fontMissing ? row.missingFontFamily : null,
-                      })
-                    }}
-                  >
-                    {getSelectOptionsForRow(row).map((font) => (
-                      <option
-                        key={`${font.label}-${font.value}`}
-                        value={font.value}
-                        style={{ color: font.missing ? '#b22323' : '#111' }}
-                      >
-                        {font.label}
-                      </option>
-                    ))}
-                  </select>
+                    <button
+                      type="button"
+                      className={`row-action delete ${rows.length === 1 ? 'disabled' : ''}`}
+                      aria-label="Remove row"
+                      disabled={rows.length === 1}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        deleteRow(row.id)
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
 
-                  <button
-                    type="button"
-                    className="row-action gear"
-                    aria-label="Open advanced settings"
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      setSelectedRowId(row.id)
-                      setAdvancedOpen(true)
-                    }}
-                  >
-                    ⚙
-                  </button>
-
-                  <button
-                    type="button"
-                    className={`row-action delete ${rows.length === 1 ? 'disabled' : ''}`}
-                    aria-label="Remove row"
-                    disabled={rows.length === 1}
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      deleteRow(row.id)
-                    }}
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            <div className="plus-button-wrap">
-              <button type="button" className="add-row-button" onClick={addRow} aria-label="Add row">
-                +
-              </button>
+              <div className="plus-button-wrap">
+                <button type="button" className="add-row-button" onClick={addRow} aria-label="Add row">
+                  +
+                </button>
+              </div>
             </div>
           </div>
 

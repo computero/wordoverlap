@@ -58,15 +58,23 @@ button {
   border-right: 4px solid #4d5d9b;
   box-sizing: border-box;
   min-height: 0;
+  max-height: min(68vh, 620px);
+  overflow: hidden;
+}
+
+.rows-scroll-section {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 4px;
 }
 
 .rows-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: 420px;
-  overflow: auto;
-  padding-right: 4px;
 }
 
 .row-item {
@@ -150,6 +158,7 @@ button {
   align-items: center;
   margin-top: 12px;
   padding-top: 4px;
+  padding-bottom: 2px;
 }
 
 .add-row-button {
@@ -646,6 +655,7 @@ button {
   .controls-panel {
     border-right: none;
     border-bottom: 4px solid #4d5d9b;
+    max-height: 420px;
   }
 
   .rows-list {
