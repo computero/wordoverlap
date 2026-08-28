@@ -281,8 +281,22 @@ button {
   background: rgba(255,255,255,0.12);
 }
 
+.stage.is-exporting .text-layer.selected {
+  outline: none;
+  background: transparent;
+}
+
 .text-layer.is-editing {
   visibility: hidden;
+}
+
+.stage.is-exporting .text-layer.is-editing,
+.stage.is-exporting .resize-handle {
+  display: none;
+}
+
+.stage.is-exporting .text-layer {
+  cursor: default;
 }
 
 .text-layer-text {

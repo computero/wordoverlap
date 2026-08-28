@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { toCanvas } from 'html-to-image'
+import { getFontEmbedCSS, toCanvas } from 'html-to-image'
 import { jsPDF } from 'jspdf'
 import './App.css'
 
@@ -65,6 +65,34 @@ const normalizeRowFont = (fontFamily, fonts = []) => {
   return { fontFamily, missingFontFamily: fontFamily }
 }
 
+const getFontFormat = (fileName = '') => {
+  const extension = fileName.split('.').pop()?.toLowerCase()
+
+  if (extension === 'woff2') return 'woff2'
+  if (extension === 'woff') return 'woff'
+  if (extension === 'otf') return 'opentype'
+  if (extension === 'ttf') return 'truetype'
+
+  return ''
+}
+
+const escapeFontName = (value) => value.replace(/(["\\])/g, '\\$1')
+
+const buildCustomFontFaceCss = (fonts = []) => {
+  return fonts
+    .filter((font) => font.source)
+    .map((font) => {
+      const formatSuffix = font.format ? ` format('${font.format}')` : ''
+
+      return `@font-face {
+  font-family: "${escapeFontName(font.label)}";
+  src: url(${font.source})${formatSuffix};
+  font-display: swap;
+}`
+    })
+    .join('\n')
+}
+
 const readStoredConfig = () => {
   if (typeof window === 'undefined') return null
 
@@ -85,6 +113,7 @@ function App() {
   const colorDragRef = useRef(null)
   const rowInputRefs = useRef(new Map())
   const sizeAdjustHoldRef = useRef(null)
+  const customFontStyleRef = useRef(null)
   const initialConfig = readStoredConfig()
   const [rows, setRows] = useState(() => {
     const saved = readStoredConfig()
@@ -116,6 +145,7 @@ function App() {
   const [editingRowId, setEditingRowId] = useState(null)
   const [pendingInputFocusRowId, setPendingInputFocusRowId] = useState(null)
   const [newRowFontSizeOffset, setNewRowFontSizeOffset] = useState(0)
+  const [isExporting, setIsExporting] = useState(false)
 
   const selectedRow =
     rows.find((row) => row.id === selectedRowId) ?? rows[rows.length - 1] ?? null
@@ -194,6 +224,28 @@ function App() {
       document.head.removeChild(fontLink)
     }
   }, [])
+
+  useEffect(() => {
+    if (typeof document === 'undefined') {
+      return undefined
+    }
+
+    if (!customFontStyleRef.current) {
+      const styleNode = document.createElement('style')
+      styleNode.setAttribute('data-custom-fonts', 'true')
+      document.head.appendChild(styleNode)
+      customFontStyleRef.current = styleNode
+    }
+
+    customFontStyleRef.current.textContent = buildCustomFontFaceCss(customFonts)
+
+    return () => {
+      if (customFontStyleRef.current) {
+        document.head.removeChild(customFontStyleRef.current)
+        customFontStyleRef.current = null
+      }
+    }
+  }, [customFonts])
 
   useEffect(() => {
     const handleMove = (event) => {
@@ -408,25 +460,43 @@ function App() {
 
     files.forEach((file) => {
       const fontName = file.name.replace(/\.[^/.]+$/, '')
-      const fontUrl = URL.createObjectURL(file)
-      const fontFace = new FontFace(fontName, `url(${fontUrl})`)
+      const reader = new FileReader()
 
-      fontFace
-        .load()
-        .then(() => {
+      reader.onload = async () => {
+        const source = String(reader.result || '')
+        const format = getFontFormat(file.name)
+
+        try {
+          const fontFace = new FontFace(fontName, `url(${source}) format('${format || 'woff2'}')`)
+          await fontFace.load()
           document.fonts.add(fontFace)
+
           setCustomFonts((current) => {
-            const exists = current.some((entry) => entry.label === fontName)
-            if (exists) return current
-            return [
-              ...current,
-              { label: fontName, value: `"${fontName}", sans-serif` },
-            ]
+            const nextEntry = {
+              format,
+              label: fontName,
+              source,
+              value: `"${fontName}", sans-serif`,
+            }
+            const existingIndex = current.findIndex((entry) => entry.label === fontName)
+
+            if (existingIndex < 0) {
+              return [...current, nextEntry]
+            }
+
+            const nextFonts = [...current]
+            nextFonts[existingIndex] = {
+              ...nextFonts[existingIndex],
+              ...nextEntry,
+            }
+            return nextFonts
           })
-        })
-        .catch(() => {
+        } catch {
           console.warn(`Could not load font: ${file.name}`)
-        })
+        }
+      }
+
+      reader.readAsDataURL(file)
     })
 
     event.target.value = ''
@@ -435,6 +505,7 @@ function App() {
   const saveConfig = async () => {
     const payload = {
       version: 1,
+      customFonts,
       rows: rows.map((row) => ({
         ...row,
         fontFamily: row.missingFontFamily && isFontAvailable(row.missingFontFamily, customFonts)
@@ -490,9 +561,12 @@ function App() {
     reader.onload = () => {
       try {
         const parsed = JSON.parse(String(reader.result))
+        const nextCustomFonts = Array.isArray(parsed.customFonts) ? parsed.customFonts : customFonts
+        setCustomFonts(nextCustomFonts)
+
             const nextRows = Array.isArray(parsed.rows)
           ? parsed.rows.map((row) => {
-              const normalized = normalizeRowFont(row.fontFamily, customFonts)
+              const normalized = normalizeRowFont(row.fontFamily, nextCustomFonts)
               return {
                 ...makeRow(),
                 ...row,
@@ -548,49 +622,61 @@ function App() {
     const stage = stageRef.current
     if (!stage) return
 
-    if (document.fonts?.ready) {
-      await document.fonts.ready
-    }
+    setIsExporting(true)
 
-    const stageBackground = window.getComputedStyle(stage).backgroundColor || '#f4efe9'
-    const exportWidth = Math.max(1, Math.round(stage.clientWidth))
-    const exportHeight = Math.max(1, Math.round(stage.clientHeight))
-    const scale = Math.max(window.devicePixelRatio || 1, 2)
-
-    let canvas
     try {
-      canvas = await toCanvas(stage, {
+      await new Promise((resolve) => window.requestAnimationFrame(resolve))
+
+      if (document.fonts?.ready) {
+        await document.fonts.ready
+      }
+
+      const stageBackground = window.getComputedStyle(stage).backgroundColor || '#f4efe9'
+      const exportWidth = Math.max(1, Math.round(stage.clientWidth))
+      const exportHeight = Math.max(1, Math.round(stage.clientHeight))
+      const scale = Math.max(window.devicePixelRatio || 1, 2)
+      const embeddedWebFontCss = await getFontEmbedCSS(stage, {
+        cacheBust: true,
+        preferredFontFormat: 'woff2',
+      })
+      const customFontCss = buildCustomFontFaceCss(customFonts)
+      const fontEmbedCSS = [embeddedWebFontCss, customFontCss].filter(Boolean).join('\n')
+
+      const canvas = await toCanvas(stage, {
         backgroundColor: stageBackground,
         cacheBust: true,
+        filter: (domNode) => !domNode.classList?.contains('resize-handle'),
+        fontEmbedCSS,
         height: exportHeight,
         pixelRatio: scale,
         skipAutoScale: false,
         width: exportWidth,
       })
+
+      if (type === 'pdf') {
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'px',
+          format: [exportWidth, exportHeight],
+        })
+        const image = canvas.toDataURL('image/png')
+        pdf.addImage(image, 'PNG', 0, 0, exportWidth, exportHeight)
+        pdf.save('shirt-design.pdf')
+        setDownloadMenuOpen(false)
+        return
+      }
+
+      const mimeType = type === 'jpg' ? 'image/jpeg' : 'image/png'
+      const link = document.createElement('a')
+      link.href = canvas.toDataURL(mimeType, 0.92)
+      link.download = `shirt-design.${type === 'jpg' ? 'jpg' : 'png'}`
+      link.click()
+      setDownloadMenuOpen(false)
     } catch (error) {
       console.error('Export failed:', error)
-      return
+    } finally {
+      setIsExporting(false)
     }
-
-    if (type === 'pdf') {
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'px',
-        format: [exportWidth, exportHeight],
-      })
-      const image = canvas.toDataURL('image/png')
-      pdf.addImage(image, 'PNG', 0, 0, exportWidth, exportHeight)
-      pdf.save('shirt-design.pdf')
-      setDownloadMenuOpen(false)
-      return
-    }
-
-    const mimeType = type === 'jpg' ? 'image/jpeg' : 'image/png'
-    const link = document.createElement('a')
-    link.href = canvas.toDataURL(mimeType, 0.92)
-    link.download = `shirt-design.${type === 'jpg' ? 'jpg' : 'png'}`
-    link.click()
-    setDownloadMenuOpen(false)
   }
 
   const selectDownloadType = (type) => {
@@ -810,7 +896,7 @@ function App() {
           </div>
 
           <div className="preview-panel">
-          <div className="stage" ref={stageRef}>
+          <div className={`stage ${isExporting ? 'is-exporting' : ''}`} ref={stageRef}>
             {rows.map((row) => (
               <div
                 key={row.id}
