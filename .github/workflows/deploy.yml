@@ -34,9 +34,18 @@ jobs:
         env:
           VITE_BASE_URL: /wordoverlap/text/
 
+      - run: npm ci
+        working-directory: ./sav
+
+      - run: npm run build
+        working-directory: ./sav
+        env:
+          VITE_BASE_URL: /wordoverlap/savcsv/
+
       - run: |
-          mkdir -p dist/text
+          mkdir -p dist/text dist/savcsv
           cp -R text/dist/. dist/text/
+          cp -R sav/dist/. dist/savcsv/
 
       - uses: actions/upload-pages-artifact@v3
         with:
