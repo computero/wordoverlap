@@ -208,6 +208,8 @@ const renderGallery = ({ mode, gallery = [], resolveImage }) => {
 
 const renderLightbox = () => `
   <aside class="lightbox" id="photo-lightbox" aria-hidden="true">
+    <button class="lightbox-nav lightbox-prev" type="button" aria-label="Previous photo">‹</button>
+    <button class="lightbox-nav lightbox-next" type="button" aria-label="Next photo">›</button>
     <button class="lightbox-close" type="button" aria-label="Close fullscreen photo">×</button>
     <div class="lightbox-content">
       <img class="lightbox-image" src="" alt="" />

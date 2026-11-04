@@ -9,24 +9,6 @@ const toAssetUrl = (value) => {
   return `${import.meta.env.BASE_URL}${value.replace(/^\/+/, '')}`;
 };
 
-const openLightbox = (photo, title = '', body = '') => {
-  if (!photo) return;
-  const lightbox = document.querySelector('#photo-lightbox');
-  if (!lightbox) return;
-  const image = lightbox.querySelector('.lightbox-image');
-  const titleEl = lightbox.querySelector('.lightbox-title');
-  const bodyEl = lightbox.querySelector('.lightbox-body');
-
-  image.src = toAssetUrl(photo);
-  image.alt = title || 'House photo';
-  titleEl.textContent = title;
-  bodyEl.textContent = body;
-  titleEl.style.display = title ? 'block' : 'none';
-  bodyEl.style.display = body ? 'block' : 'none';
-  lightbox.classList.add('open');
-  lightbox.setAttribute('aria-hidden', 'false');
-};
-
 const closeLightbox = () => {
   const lightbox = document.querySelector('#photo-lightbox');
   if (!lightbox) return;
@@ -38,29 +20,87 @@ const wireInteractions = (config) => {
   const gallery = config.gallery ?? [];
   const hero = config.hero ?? {};
   const heroTitle = config.listing?.title ?? '';
+  const lightboxItems = [];
+
+  if (hero.photo) {
+    lightboxItems.push({
+      photo: hero.photo,
+      title: hero.subheading || heroTitle,
+      body: hero.body || ''
+    });
+  }
+
+  for (const item of gallery) {
+    if (!item?.photo) continue;
+    lightboxItems.push({
+      photo: item.photo,
+      title: item.subheading ?? '',
+      body: item.body ?? ''
+    });
+  }
+
+  let activeLightboxIndex = -1;
+  const lightbox = document.querySelector('#photo-lightbox');
+  const image = lightbox?.querySelector('.lightbox-image');
+  const titleEl = lightbox?.querySelector('.lightbox-title');
+  const bodyEl = lightbox?.querySelector('.lightbox-body');
+  const prevButton = lightbox?.querySelector('.lightbox-prev');
+  const nextButton = lightbox?.querySelector('.lightbox-next');
+
+  const renderLightboxItem = () => {
+    if (!image || !titleEl || !bodyEl || !prevButton || !nextButton) return;
+    const selected = lightboxItems[activeLightboxIndex];
+    if (!selected) return;
+    image.src = toAssetUrl(selected.photo);
+    image.alt = selected.title || 'House photo';
+    titleEl.textContent = selected.title;
+    bodyEl.textContent = selected.body;
+    titleEl.style.display = selected.title ? 'block' : 'none';
+    bodyEl.style.display = selected.body ? 'block' : 'none';
+    const hasMultiple = lightboxItems.length > 1;
+    prevButton.style.display = hasMultiple ? 'grid' : 'none';
+    nextButton.style.display = hasMultiple ? 'grid' : 'none';
+  };
+
+  const openLightboxAt = (index) => {
+    if (!lightbox || !lightboxItems[index]) return;
+    activeLightboxIndex = index;
+    renderLightboxItem();
+    lightbox.classList.add('open');
+    lightbox.setAttribute('aria-hidden', 'false');
+  };
+
+  const moveLightbox = (delta) => {
+    if (!lightbox.classList.contains('open') || lightboxItems.length < 2) return;
+    activeLightboxIndex = (activeLightboxIndex + delta + lightboxItems.length) % lightboxItems.length;
+    renderLightboxItem();
+  };
 
   app.addEventListener('click', (event) => {
     const imageTarget = event.target.closest('.photo-expand-trigger');
     if (!imageTarget || imageTarget.classList.contains('image-placeholder')) return;
     if (imageTarget.classList.contains('hero-image')) {
-      openLightbox(hero.photo, hero.subheading || heroTitle, hero.body || '');
+      openLightboxAt(0);
       return;
     }
     const card = imageTarget.closest('[data-photo-index]');
     if (!card) return;
     const index = Number(card.dataset.photoIndex);
-    const selected = gallery[index];
-    if (!selected) return;
-    openLightbox(selected.photo, selected.subheading ?? '', selected.body ?? '');
+    if (!Number.isFinite(index) || !gallery[index]?.photo) return;
+    const startIndex = hero.photo ? 1 : 0;
+    openLightboxAt(startIndex + index);
   });
 
-  const lightbox = document.querySelector('#photo-lightbox');
   lightbox?.addEventListener('click', (event) => {
     if (event.target.matches('.lightbox, .lightbox-close')) closeLightbox();
+    if (event.target.matches('.lightbox-prev')) moveLightbox(-1);
+    if (event.target.matches('.lightbox-next')) moveLightbox(1);
   });
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') closeLightbox();
+    if (event.key === 'ArrowLeft') moveLightbox(-1);
+    if (event.key === 'ArrowRight') moveLightbox(1);
   });
 };
 

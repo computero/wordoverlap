@@ -26,7 +26,9 @@ const state = {
   assetsByField: new Map(),
   context: null,
   longTapTimer: null,
-  tapInfo: null
+  touchTarget: null,
+  longTapTriggered: false,
+  suppressClickUntil: 0
 };
 
 const hiddenPicker = document.createElement('input');
@@ -152,9 +154,6 @@ const startInlineTextEdit = (el, fieldPath) => {
   if (!el || el.dataset.editing === 'true') return;
   el.dataset.editing = 'true';
   const existingValue = getAtPath(state.config, fieldPath) ?? '';
-  if ((el.dataset.temp || '') === 'true') {
-    el.textContent = '';
-  }
 
   el.setAttribute('contenteditable', 'true');
   el.setAttribute('spellcheck', 'true');
@@ -163,7 +162,6 @@ const startInlineTextEdit = (el, fieldPath) => {
   const selection = window.getSelection();
   const range = document.createRange();
   range.selectNodeContents(el);
-  range.collapse(false);
   selection.removeAllRanges();
   selection.addRange(range);
 
@@ -402,6 +400,7 @@ const quickEdit = async (target) => {
 
 const bindEvents = () => {
   app.addEventListener('click', async (event) => {
+    if (Date.now() < state.suppressClickUntil) return;
     const contactLink = event.target.closest('.contact-fab');
     if (contactLink) event.preventDefault();
 
@@ -413,13 +412,14 @@ const bindEvents = () => {
       return;
     }
 
-    closeContextMenu();
-  });
-
-  app.addEventListener('dblclick', async (event) => {
     const target = event.target.closest('[data-field-path], [data-action-add], [data-field-type]');
-    if (!target) return;
-    await quickEdit(target);
+    if (target) {
+      closeContextMenu();
+      await quickEdit(target);
+      return;
+    }
+
+    closeContextMenu();
   });
 
   app.addEventListener(
@@ -428,26 +428,39 @@ const bindEvents = () => {
       const target = event.target.closest('[data-field-path], [data-action-add], [data-field-type], .site-shell');
       if (!target) return;
       const touch = event.touches[0];
+      state.touchTarget = target;
+      state.longTapTriggered = false;
+      if (state.longTapTimer) clearTimeout(state.longTapTimer);
       state.longTapTimer = window.setTimeout(() => {
         renderContextMenu(touch.clientX, touch.clientY, target);
+        state.longTapTriggered = true;
         state.longTapTimer = null;
       }, 460);
-
-      const now = Date.now();
-      if (state.tapInfo && now - state.tapInfo.time < 320 && state.tapInfo.target === target) {
-        state.tapInfo = null;
-        quickEdit(target);
-      } else {
-        state.tapInfo = { time: now, target };
-      }
     },
     { passive: true }
   );
 
-  app.addEventListener('touchend', () => {
-    if (!state.longTapTimer) return;
-    clearTimeout(state.longTapTimer);
-    state.longTapTimer = null;
+  app.addEventListener('touchend', async () => {
+    const target = state.touchTarget;
+    if (state.longTapTimer) {
+      clearTimeout(state.longTapTimer);
+      state.longTapTimer = null;
+    }
+    if (target && !state.longTapTriggered) {
+      await quickEdit(target);
+      state.suppressClickUntil = Date.now() + 450;
+    }
+    state.touchTarget = null;
+    state.longTapTriggered = false;
+  });
+
+  app.addEventListener('touchcancel', () => {
+    if (state.longTapTimer) {
+      clearTimeout(state.longTapTimer);
+      state.longTapTimer = null;
+    }
+    state.touchTarget = null;
+    state.longTapTriggered = false;
   });
 
   app.addEventListener('contextmenu', (event) => {
