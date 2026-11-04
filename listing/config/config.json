@@ -1,0 +1,97 @@
+{
+  "listing": {
+    "title": "1578 Independence Ave",
+    "askingPrice": "Glenview, IL 60026",
+    "contactEmail": "dkrylicki@yahoo.com",
+    "contactLabel": "Contact Owner"
+  },
+  "hero": {
+    "photo": "photos/exterior.jpg",
+    "subheading": "Asking price: $1,900,000",
+    "body": "5 bedrooms - 4.5 bathrooms - Finished basement"
+  },
+  "highlights": [
+    {
+      "label": "Finished basement",
+      "value": "Huge space with spare room"
+    },
+    {
+      "label": "Finished deck",
+      "value": ""
+    },
+    {
+      "label": "Three-car garage",
+      "value": ""
+    },
+    {
+      "label": "Multiple secret rooms",
+      "value": "Can you find them all?"
+    }
+  ],
+  "proximity": [
+    {
+      "place": "Glen Town Center",
+      "distance": "Under a mile"
+    },
+    {
+      "place": "Attea Middle School",
+      "distance": "Under a mile"
+    },
+    {
+      "place": "Glenbrook South High School",
+      "distance": "Couple miles or so"
+    }
+  ],
+  "gallery": [
+    {
+      "photo": "photos/barstools.jpg",
+      "subheading": "Great open floorplan kitchen area",
+      "body": "Perfect for entertaining!"
+    },
+    {
+      "photo": "photos/kitchentable.jpg",
+      "subheading": "This is just an example for mom to add to later!",
+      "body": "Love the photos"
+    },
+    {
+      "photo": "photos/familyroom.jpg",
+      "subheading": "Woah! I'm up high!",
+      "body": ""
+    },
+    {
+      "photo": "photos/mroom.jpg",
+      "subheading": "",
+      "body": "don't need a title"
+    },
+    {
+      "photo": "photos/croom.jpg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/broom.jpg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/office.jpg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/masterbath.jpg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/masterbath2.jpg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/sunroom.jpg",
+      "subheading": "Sunroom",
+      "body": "pretty sunny if i do say so myself"
+    }
+  ]
+}
