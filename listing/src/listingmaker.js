@@ -26,7 +26,6 @@ const state = {
   assetsByField: new Map(),
   context: null,
   longTapTimer: null,
-  touchTarget: null,
   longTapTriggered: false,
   suppressClickUntil: 0
 };
@@ -428,7 +427,6 @@ const bindEvents = () => {
       const target = event.target.closest('[data-field-path], [data-action-add], [data-field-type], .site-shell');
       if (!target) return;
       const touch = event.touches[0];
-      state.touchTarget = target;
       state.longTapTriggered = false;
       if (state.longTapTimer) clearTimeout(state.longTapTimer);
       state.longTapTimer = window.setTimeout(() => {
@@ -440,17 +438,14 @@ const bindEvents = () => {
     { passive: true }
   );
 
-  app.addEventListener('touchend', async () => {
-    const target = state.touchTarget;
+  app.addEventListener('touchend', () => {
     if (state.longTapTimer) {
       clearTimeout(state.longTapTimer);
       state.longTapTimer = null;
     }
-    if (target && !state.longTapTriggered) {
-      await quickEdit(target);
-      state.suppressClickUntil = Date.now() + 450;
+    if (state.longTapTriggered) {
+      state.suppressClickUntil = Date.now() + 700;
     }
-    state.touchTarget = null;
     state.longTapTriggered = false;
   });
 
@@ -459,7 +454,6 @@ const bindEvents = () => {
       clearTimeout(state.longTapTimer);
       state.longTapTimer = null;
     }
-    state.touchTarget = null;
     state.longTapTriggered = false;
   });
 
