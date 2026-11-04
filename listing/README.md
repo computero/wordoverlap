@@ -13,7 +13,7 @@ No HTML edits are needed.
 Use [editor/index.html](./editor/index.html) for creating/editing listings and exporting a package.
 
 - URL in dev: `/editor/`
-- URL in production (with `VITE_BASE_URL=/listing/`): `/listing/editor/`
+- URL in production (with `VITE_BASE_URL=/wordoverlap/listing/`): `/wordoverlap/listing/editor/`
 - Rendering is hard-locked to the same shared template as the live page (`src/listing-template.js`), so layout/style changes apply to both.
 - Import: drag-and-drop (or file picker) with `config.json` + photo files
 - Export: one ZIP containing:
