@@ -1,6 +1,7 @@
 import JSZip from 'jszip';
 import './style.css';
 import { buildListingMarkup } from './listing-template.js';
+import { applyGalleryImageOrientation } from './image-orientation.js';
 
 const app = document.querySelector('#app');
 
@@ -28,6 +29,13 @@ const state = {
   longTapTimer: null,
   longTapTriggered: false,
   suppressClickUntil: 0
+};
+
+const resetLinkedAssets = () => {
+  for (const entry of state.assetsByField.values()) {
+    if (entry?.url) URL.revokeObjectURL(entry.url);
+  }
+  state.assetsByField.clear();
 };
 
 const hiddenPicker = document.createElement('input');
@@ -72,6 +80,25 @@ const collectPhotoFields = (config) => {
     rows.push({ fieldPath: `gallery.${index}.photo`, value: item.photo ?? '' });
   });
   return rows;
+};
+
+const hasGalleryContent = (item) => {
+  if (!item || typeof item !== 'object') return false;
+  const photo = String(item.photo ?? '').trim();
+  const subheading = String(item.subheading ?? '').trim();
+  const body = String(item.body ?? '').trim();
+  return Boolean(photo || subheading || body);
+};
+
+const applyImportedConfig = (json) => {
+  const importedGallery = Array.isArray(json.gallery) ? json.gallery : [];
+  state.config = {
+    listing: { ...defaultConfig.listing, ...(json.listing ?? {}) },
+    hero: { ...defaultConfig.hero, ...(json.hero ?? {}) },
+    highlights: Array.isArray(json.highlights) ? json.highlights : [],
+    proximity: Array.isArray(json.proximity) ? json.proximity : [],
+    gallery: importedGallery.filter(hasGalleryContent)
+  };
 };
 
 const uniquePhotoName = (name) => {
@@ -130,6 +157,30 @@ const addRow = (kind) => {
   if (kind === 'gallery') state.config.gallery.push({ photo: '', subheading: '', body: '' });
   if (kind === 'highlights') state.config.highlights.push({ label: '', value: '' });
   if (kind === 'proximity') state.config.proximity.push({ place: '', distance: '' });
+  render();
+};
+
+const newRowForKind = (kind) => {
+  if (kind === 'gallery') return { photo: '', subheading: '', body: '' };
+  if (kind === 'highlights') return { label: '', value: '' };
+  if (kind === 'proximity') return { place: '', distance: '' };
+  return null;
+};
+
+const parseArrayPath = (arrayPath = '') => {
+  const [kind, indexText] = String(arrayPath).split('.');
+  const index = Number(indexText);
+  if (!kind || !Number.isInteger(index) || index < 0) return null;
+  return { kind, index };
+};
+
+const insertRowAfter = (arrayPath) => {
+  const parsed = parseArrayPath(arrayPath);
+  if (!parsed) return;
+  const bucket = state.config[parsed.kind];
+  const row = newRowForKind(parsed.kind);
+  if (!Array.isArray(bucket) || !row) return;
+  bucket.splice(parsed.index + 1, 0, row);
   render();
 };
 
@@ -217,7 +268,7 @@ const renderContextMenu = (x, y, target) => {
   const arrayPath = target.dataset.arrayPath || target.closest('[data-array-path]')?.dataset.arrayPath;
 
   const actions = [
-    { action: 'import', label: 'Import json + photos' },
+    { action: 'import', label: 'Import zip or json + photos' },
     { action: 'export', label: 'Export zip' }
   ];
   const contactRoot = target.closest('[data-contact-root="true"]');
@@ -236,7 +287,12 @@ const renderContextMenu = (x, y, target) => {
     actions.push({ action: 'edit-text', label: `Edit ${fieldLabel}`, fieldPath, fieldLabel });
     actions.push({ action: 'clear', label: `Clear ${fieldLabel}`, fieldPath });
   }
-  if (arrayPath) actions.push({ action: 'delete-row', label: 'Delete section', arrayPath });
+  if (arrayPath) {
+    const parsed = parseArrayPath(arrayPath);
+    const insertLabel = parsed ? `Add ${sectionName(parsed.kind)} below` : 'Add section below';
+    actions.push({ action: 'insert-row', label: insertLabel, arrayPath });
+    actions.push({ action: 'delete-row', label: 'Delete section', arrayPath });
+  }
 
   state.context = { actions };
   menu.innerHTML = actions.map((item, index) => `<button type="button" data-action-index="${index}">${item.label}</button>`).join('');
@@ -252,23 +308,8 @@ const closeContextMenu = () => {
   state.context = null;
 };
 
-const handleImportFiles = async (files) => {
-  const jsonFile = files.find((file) => file.name.toLowerCase().endsWith('.json'));
-  if (!jsonFile) return;
-  const json = JSON.parse(await jsonFile.text());
-  state.config = {
-    listing: { ...defaultConfig.listing, ...(json.listing ?? {}) },
-    hero: { ...defaultConfig.hero, ...(json.hero ?? {}) },
-    highlights: Array.isArray(json.highlights) ? json.highlights : [],
-    proximity: Array.isArray(json.proximity) ? json.proximity : [],
-    gallery: Array.isArray(json.gallery) ? json.gallery : []
-  };
-
-  const imagesByName = new Map(
-    files
-      .filter((file) => file.type.startsWith('image/'))
-      .map((file) => [file.name.toLowerCase(), file])
-  );
+const importPhotosForConfig = (imageFiles) => {
+  const imagesByName = new Map(imageFiles.map((file) => [file.name.toLowerCase(), file]));
 
   for (const field of collectPhotoFields(state.config)) {
     const name = String(field.value || '').split('/').pop()?.toLowerCase();
@@ -277,6 +318,46 @@ const handleImportFiles = async (files) => {
     if (!matching) continue;
     fileToObjectUrl(field.fieldPath, matching);
   }
+};
+
+const handleImportZip = async (zipFile) => {
+  const zip = await JSZip.loadAsync(zipFile);
+  const entries = Object.values(zip.files).filter((entry) => !entry.dir);
+  const configEntry = entries.find((entry) => /(^|\/)config\.json$/i.test(entry.name));
+  if (!configEntry) throw new Error('Zip is missing config.json');
+
+  const jsonText = await configEntry.async('string');
+  const json = JSON.parse(jsonText);
+
+  resetLinkedAssets();
+  applyImportedConfig(json);
+
+  const imageFiles = [];
+  for (const entry of entries) {
+    if (!/(^|\/)photos\//i.test(entry.name)) continue;
+    const baseName = entry.name.split('/').pop();
+    if (!baseName) continue;
+    const blob = await entry.async('blob');
+    imageFiles.push(new File([blob], baseName, { type: blob.type || 'application/octet-stream' }));
+  }
+
+  importPhotosForConfig(imageFiles);
+  render();
+};
+
+const handleImportFiles = async (files) => {
+  const zipFile = files.find((file) => file.name.toLowerCase().endsWith('.zip'));
+  if (zipFile) {
+    await handleImportZip(zipFile);
+    return;
+  }
+
+  const jsonFile = files.find((file) => file.name.toLowerCase().endsWith('.json'));
+  if (!jsonFile) return;
+  const json = JSON.parse(await jsonFile.text());
+  resetLinkedAssets();
+  applyImportedConfig(json);
+  importPhotosForConfig(files.filter((file) => file.type.startsWith('image/')));
 
   render();
 };
@@ -285,7 +366,7 @@ const openImportPicker = () => {
   const picker = document.createElement('input');
   picker.type = 'file';
   picker.multiple = true;
-  picker.accept = '.json,image/*';
+  picker.accept = '.zip,.json,image/*';
   picker.onchange = async () => {
     const files = Array.from(picker.files ?? []);
     if (files.length) await handleImportFiles(files);
@@ -297,6 +378,7 @@ const exportZip = async () => {
   const zip = new JSZip();
   const photos = zip.folder('photos');
   const exportConfig = structuredClone(state.config);
+  exportConfig.gallery = (exportConfig.gallery ?? []).filter(hasGalleryContent);
   const usedNames = new Set();
 
   for (const field of collectPhotoFields(exportConfig)) {
@@ -369,6 +451,10 @@ const runMenuAction = async (entry) => {
   }
   if (entry.action === 'add') {
     addRow(entry.addKind);
+    return;
+  }
+  if (entry.action === 'insert-row') {
+    insertRowAfter(entry.arrayPath);
     return;
   }
   if (entry.action === 'delete-row') {
@@ -488,6 +574,7 @@ const render = () => {
     mode: 'edit',
     resolveImage: (photo, fieldPath) => getDisplayImage(fieldPath, photo)
   });
+  applyGalleryImageOrientation(app);
 };
 
 render();

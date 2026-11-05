@@ -1,5 +1,6 @@
 import './style.css';
 import { buildListingMarkup, escapeHtml } from './listing-template.js';
+import { applyGalleryImageOrientation } from './image-orientation.js';
 
 const app = document.querySelector('#app');
 
@@ -124,6 +125,7 @@ async function loadConfig() {
       mode: 'view',
       resolveImage: (photo) => toAssetUrl(photo)
     });
+    applyGalleryImageOrientation(app);
     wireInteractions(config);
   } catch (error) {
     renderError(`Check your config/config.json format. ${error.message}`);

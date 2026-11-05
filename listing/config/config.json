@@ -1,97 +1,252 @@
 {
   "listing": {
-    "title": "1578 Independence Ave",
-    "askingPrice": "Glenview, IL 60026",
+    "title": "",
+    "askingPrice": "",
     "contactEmail": "dkrylicki@yahoo.com",
     "contactLabel": "Contact Owner"
   },
   "hero": {
-    "photo": "photos/exterior.jpg",
-    "subheading": "Asking price: $1,900,000",
-    "body": "5 bedrooms - 4.5 bathrooms - Finished basement"
+    "photo": "photos/house_pic.jpg",
+    "subheading": "",
+    "body": ""
   },
-  "highlights": [
-    {
-      "label": "Finished basement",
-      "value": "Huge space with spare room"
-    },
-    {
-      "label": "Finished deck",
-      "value": ""
-    },
-    {
-      "label": "Three-car garage",
-      "value": ""
-    },
-    {
-      "label": "Multiple secret rooms",
-      "value": "Can you find them all?"
-    }
-  ],
-  "proximity": [
-    {
-      "place": "Glen Town Center",
-      "distance": "Under a mile"
-    },
-    {
-      "place": "Attea Middle School",
-      "distance": "Under a mile"
-    },
-    {
-      "place": "Glenbrook South High School",
-      "distance": "Couple miles or so"
-    }
-  ],
+  "highlights": [],
+  "proximity": [],
   "gallery": [
     {
-      "photo": "photos/barstools.jpg",
-      "subheading": "Great open floorplan kitchen area",
-      "body": "Perfect for entertaining!"
-    },
-    {
-      "photo": "photos/kitchentable.jpg",
-      "subheading": "This is just an example for mom to add to later!",
-      "body": "Love the photos"
-    },
-    {
-      "photo": "photos/familyroom.jpg",
-      "subheading": "Woah! I'm up high!",
-      "body": ""
-    },
-    {
-      "photo": "photos/mroom.jpg",
-      "subheading": "",
-      "body": "don't need a title"
-    },
-    {
-      "photo": "photos/croom.jpg",
+      "photo": "photos/img_0018_2.jpeg",
       "subheading": "",
       "body": ""
     },
     {
-      "photo": "photos/broom.jpg",
+      "photo": "photos/img_0020.jpeg",
       "subheading": "",
       "body": ""
     },
     {
-      "photo": "photos/office.jpg",
+      "photo": "photos/img_9920.jpg",
       "subheading": "",
       "body": ""
     },
     {
-      "photo": "photos/masterbath.jpg",
+      "photo": "photos/img_9918.jpeg",
       "subheading": "",
       "body": ""
     },
     {
-      "photo": "photos/masterbath2.jpg",
+      "photo": "photos/img_9979.jpeg",
       "subheading": "",
       "body": ""
     },
     {
-      "photo": "photos/sunroom.jpg",
-      "subheading": "Sunroom",
-      "body": "pretty sunny if i do say so myself"
+      "photo": "photos/img_9982.jpeg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_9983.jpeg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_9973.jpeg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_9926.jpeg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_9927.jpeg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_9923.jpeg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_9921.jpeg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_9922.jpeg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_0023.jpg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_0025.jpg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_0012.jpeg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_0010.jpeg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_9933.jpeg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_9936.jpeg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_9937.jpeg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_9939.jpeg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_9932.jpeg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_9929.jpeg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_9928.jpeg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_0007.jpeg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_0008.jpeg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_0002.jpeg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_0004.jpeg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_0026.jpeg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_0028.jpeg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_0027.jpeg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_0029.jpeg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_0030.jpeg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_9991.jpeg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_9993.jpeg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_9994.jpeg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_9992.jpeg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_0043.jpg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_9986.jpeg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_0040.jpeg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_0038.jpg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_0039.jpg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_0042.jpg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_9989_2.jpeg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_9988.jpeg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/img_0041.jpg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "",
+      "subheading": "",
+      "body": ""
     }
   ]
 }

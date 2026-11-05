@@ -184,6 +184,18 @@ h1 {
   cursor: zoom-in;
 }
 
+.gallery-card.is-portrait .gallery-photo {
+  aspect-ratio: auto;
+  width: 100%;
+  max-height: min(70svh, calc(100svh - 12rem));
+  object-fit: contain;
+  background: #e9e3de;
+}
+
+.gallery-card.is-portrait {
+  max-height: 100svh;
+}
+
 .gallery-card-content {
   padding: 0.75rem;
 }

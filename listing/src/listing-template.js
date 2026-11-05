@@ -8,6 +8,14 @@ export const escapeHtml = (value = '') =>
 
 const optionalText = (value) => (value ? `<p>${escapeHtml(value)}</p>` : '');
 
+const hasGalleryContent = (item) => {
+  if (!item || typeof item !== 'object') return false;
+  const photo = String(item.photo ?? '').trim();
+  const subheading = String(item.subheading ?? '').trim();
+  const body = String(item.body ?? '').trim();
+  return Boolean(photo || subheading || body);
+};
+
 const defaultAssetUrl = (value) => `${import.meta.env.BASE_URL}${String(value).replace(/^\/+/, '')}`;
 
 const renderText = ({ mode, value, fallback, fieldPath, label, className = '' }) => {
@@ -145,12 +153,13 @@ const renderProximity = ({ mode, proximity = [] }) => {
 };
 
 const renderGallery = ({ mode, gallery = [], resolveImage }) => {
-  if (mode !== 'edit' && !gallery.length) return '';
+  const visibleGallery = mode === 'edit' ? gallery : gallery.filter(hasGalleryContent);
+  if (mode !== 'edit' && !visibleGallery.length) return '';
   return `
     <section class="panel photo-tour-panel">
       <h2>Photo tour</h2>
       <div class="gallery-grid">
-        ${gallery
+        ${visibleGallery
           .map((item, index) => {
             const title = item.subheading ?? '';
             const body = item.body ?? '';
@@ -225,6 +234,9 @@ export const buildListingMarkup = (config, options = {}) => {
   const mode = options.mode === 'edit' ? 'edit' : 'view';
   const listing = config.listing ?? {};
   const hero = config.hero ?? {};
+  const highlights = config.highlights ?? [];
+  const proximity = config.proximity ?? [];
+  const showBottomPanels = mode === 'edit' || highlights.length > 0 || proximity.length > 0;
   const resolveImage = options.resolveImage ?? ((value) => defaultAssetUrl(value));
   const contactEmail = listing.contactEmail ?? '';
   const contactLabel = listing.contactLabel || 'Contact Owner';
@@ -297,10 +309,14 @@ export const buildListingMarkup = (config, options = {}) => {
       </section>
 
       ${renderGallery({ mode, gallery: config.gallery ?? [], resolveImage })}
-      <section class="bottom-panels">
-        ${renderHighlights({ mode, highlights: config.highlights ?? [] })}
-        ${renderProximity({ mode, proximity: config.proximity ?? [] })}
-      </section>
+      ${
+        showBottomPanels
+          ? `<section class="bottom-panels">
+        ${renderHighlights({ mode, highlights })}
+        ${renderProximity({ mode, proximity })}
+      </section>`
+          : ''
+      }
 
       <a class="contact-fab ${mode === 'edit' ? 'editable-field' : ''}" href="${contactHref}" ${contactEmail ? '' : 'aria-disabled="true"'} ${mode === 'edit' ? 'data-contact-root="true"' : ''} aria-label="${escapeHtml(contactLabel)}">
         <span class="contact-icon" aria-hidden="true">✉</span>
