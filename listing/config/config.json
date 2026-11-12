@@ -64,17 +64,7 @@
       "body": ""
     },
     {
-      "photo": "photos/d.JPEG",
-      "subheading": "",
-      "body": ""
-    },
-    {
       "photo": "photos/frs.JPG",
-      "subheading": "",
-      "body": ""
-    },
-    {
-      "photo": "photos/e.JPEG",
       "subheading": "",
       "body": ""
     },
@@ -119,6 +109,11 @@
       "body": ""
     },
     {
+      "photo": "photos/landing.jpg",
+      "subheading": "",
+      "body": ""
+    },
+    {
       "photo": "photos/img_0010.jpeg",
       "subheading": "",
       "body": ""
@@ -155,6 +150,16 @@
     },
     {
       "photo": "photos/img_9929.jpeg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/closed.jpg",
+      "subheading": "",
+      "body": ""
+    },
+    {
+      "photo": "photos/open.jpg",
       "subheading": "",
       "body": ""
     },
